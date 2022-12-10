@@ -101,24 +101,6 @@ async function run() {
       res.send("Hello there!");
     });
 
-    app.get("/get-product", async (req, res) => {
-      try {
-        // const category = req.headers?.category;
-        // const filter = { category: category };
-        const result = await productCollection.find({}).toArray();
-        res.status(200).send({
-          data: result,
-          success: true,
-          message: "Got products data.",
-        });
-      } catch (error) {
-        res.status(500).send({
-          message: "Internal server error.",
-          success: false,
-        });
-      }
-    });
-
     // Verify admin
     async function verifyAdmin(req, res, next) {
       const uid = req?.decoded?.uid;
@@ -358,7 +340,6 @@ async function run() {
     // await client.close();
   }
 }
-
 run().catch(console.dir);
 
 const PORT = process.env.PORT || 5000;
