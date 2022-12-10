@@ -207,7 +207,9 @@ async function run() {
       uploadFile.single("image"),
       async (req, res) => {
         try {
-          let path = "http://localhost:5000/assets/" + req.filename;
+          let path =
+            "https://annoor-server-production-af32.up.railway.app/assets/" +
+            req.filename;
           const product = req.body;
 
           const productInfo = {
@@ -249,7 +251,9 @@ async function run() {
           };
 
           if (req?.filename) {
-            let path = "http://localhost:5000/assets/" + req.filename;
+            let path =
+              "https://annoor-server-production-af32.up.railway.app/assets/" +
+              req.filename;
             productInfo = { ...productInfo, image: path };
           }
 
