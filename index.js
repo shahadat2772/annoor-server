@@ -97,6 +97,10 @@ async function run() {
       .db("annoor-business")
       .collection("product-collection");
 
+    const orderCollection = client
+      .db("annoor-business")
+      .collection("order-collection");
+
     app.get("/", async (req, res) => {
       res.send("Hello there!");
     });
@@ -197,6 +201,37 @@ async function run() {
       }
     });
 
+    // Order APIs
+    app.post("/order", verifyJWT, async (req, res) => {
+      try {
+        const ordersCount = await orderCollection.estimatedDocumentCount();
+        const order = req.body;
+        order.orderId = ordersCount + 1;
+        const result = await orderCollection.insertOne(order);
+        res
+          .status(200)
+          .send({ success: true, message: "Order placed successfully" });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ success: false, message: "Internal server error" });
+      }
+    });
+
+    app.get("/orders", verifyJWT, async (req, res) => {
+      try {
+        const filter = { uid: req.headers.uid };
+        const result = await orderCollection.find(filter).toArray();
+        res
+          .status(200)
+          .send({ success: true, message: "Got all orders", data: result });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ success: false, message: "Internal server error" });
+      }
+    });
+
     // Admin Routes
 
     // Add Product
@@ -207,9 +242,7 @@ async function run() {
       uploadFile.single("image"),
       async (req, res) => {
         try {
-          let path =
-            "https://annoor-server-production-af32.up.railway.app/assets/" +
-            req.filename;
+          let path = "http://localhost:5000/assets/" + req.filename;
           const product = req.body;
 
           const productInfo = {
@@ -251,9 +284,7 @@ async function run() {
           };
 
           if (req?.filename) {
-            let path =
-              "https://annoor-server-production-af32.up.railway.app/assets/" +
-              req.filename;
+            let path = "http://localhost:5000/assets/" + req.filename;
             productInfo = { ...productInfo, image: path };
           }
 
