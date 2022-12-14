@@ -218,13 +218,85 @@ async function run() {
       }
     });
 
+    // Get orders by uid
     app.get("/orders", verifyJWT, async (req, res) => {
       try {
         const filter = { uid: req.headers.uid };
-        const result = await orderCollection.find(filter).toArray();
+        const page = parseInt(req?.query?.page) - 1;
+        const orderCount = await orderCollection.countDocuments(filter);
+        const result = await orderCollection
+          .find(filter)
+          .sort({ $natural: -1 })
+          .skip(page * 15)
+          .limit(15)
+          .toArray();
+
+        res.status(200).send({
+          success: true,
+          message: "Got all orders",
+          data: result,
+          orderCount: orderCount,
+        });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ success: false, message: "Internal server error" });
+      }
+    });
+
+    app.delete("/delete-order", verifyJWT, verifyAdmin, async (req, res) => {
+      try {
+        const orderId = Number(req.headers.id);
+        const filter = { orderId: orderId };
+        const result = await orderCollection.deleteOne(filter);
         res
           .status(200)
-          .send({ success: true, message: "Got all orders", data: result });
+          .send({ message: "Deleted the product.", success: true });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "Internal server error.", success: false });
+      }
+    });
+
+    // Get all orders for admin
+    app.get("/all-orders", verifyJWT, verifyAdmin, async (req, res) => {
+      try {
+        const page = parseInt(req?.query?.page) - 1;
+        const orderCount = await orderCollection.countDocuments();
+        const result = await orderCollection
+          .find({})
+          .sort({ $natural: -1 })
+          .skip(page * 15)
+          .limit(15)
+          .toArray();
+        res.status(200).send({
+          success: true,
+          message: "Got all orders",
+          data: result,
+          orderCount: orderCount,
+        });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ success: false, message: "Internal server error" });
+      }
+    });
+
+    // Make a payment
+    app.post("/payment", verifyJWT, async (req, res) => {
+      try {
+        const paymentInfo = req.body;
+        const orderId = Number(req.headers.id);
+        const filter = { orderId };
+        const doc = {
+          $set: paymentInfo,
+        };
+        const result = await orderCollection.updateOne(filter, doc);
+        res.status(200).send({
+          message: "Successfully requested for payment.",
+          success: true,
+        });
       } catch (error) {
         res
           .status(500)
@@ -233,7 +305,6 @@ async function run() {
     });
 
     // Admin Routes
-
     // Add Product
     app.post(
       "/product",
@@ -365,6 +436,27 @@ async function run() {
         res
           .status(200)
           .send({ success: true, message: "Got single product", data: result });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ success: false, message: "Internal server error." });
+      }
+    });
+
+    // Update order status
+    app.post("/order-status", verifyJWT, verifyAdmin, async (req, res) => {
+      try {
+        const orderId = Number(req.headers.id);
+        const filter = { orderId: orderId };
+        const updatedOrderStatus = req.body;
+        const doc = {
+          $set: updatedOrderStatus,
+        };
+        const result = await orderCollection.updateOne(filter, doc);
+        res.status(200).send({
+          success: true,
+          message: "Updated order status.",
+        });
       } catch (error) {
         res
           .status(500)
