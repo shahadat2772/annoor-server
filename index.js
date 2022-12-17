@@ -120,6 +120,8 @@ async function run() {
       }
     }
 
+    // -------------- USER ROUTES -------------
+
     // Get token/user creation
     app.put("/token", async (req, res) => {
       try {
@@ -198,6 +200,25 @@ async function run() {
           message: "Internal server error.",
           success: false,
         });
+      }
+    });
+
+    // Search products
+    app.get("/products", async (req, res) => {
+      try {
+        const query = req?.query?.search;
+        const filter = { $text: { $search: `/${query}/i` } };
+        console.log(filter);
+        const result = await productCollection.find(filter).toArray();
+        res.status(200).send({
+          message: "Searched products.",
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "Internal server error.", success: false });
       }
     });
 
@@ -311,7 +332,8 @@ async function run() {
       }
     });
 
-    // Admin Routes
+    // ------------- ADMIN ROUTES ---------------
+
     // Add Product
     app.post(
       "/product",
@@ -385,7 +407,7 @@ async function run() {
       }
     );
 
-    // Get all products / search products
+    // Get all products / search products for admin
     app.get("/all-products", verifyJWT, verifyAdmin, async (req, res) => {
       // const result = await productCollection.createIndex({
       //   name: "text",
@@ -534,6 +556,7 @@ async function run() {
       }
     });
 
+    // Make admin
     app.patch("/make-admin", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const filter = { uid: req?.headers?.id };
@@ -553,6 +576,7 @@ async function run() {
       }
     });
 
+    // Remove admin
     app.patch("/remove-admin", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const filter = { uid: req?.headers?.id };
