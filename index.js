@@ -263,9 +263,16 @@ async function run() {
     app.get("/all-orders", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const page = parseInt(req?.query?.page) - 1;
+        const filterBy = req?.query?.filter;
+        let query = {};
+
+        if (filterBy) {
+          query = { status: filterBy };
+        }
+
         const orderCount = await orderCollection.countDocuments();
         const result = await orderCollection
-          .find({})
+          .find(query)
           .sort({ $natural: -1 })
           .skip(page * 15)
           .limit(15)
@@ -313,20 +320,20 @@ async function run() {
       uploadFile.single("image"),
       async (req, res) => {
         try {
-          let path =
-            "https://annoor-server-production-af32.up.railway.app/assets/" +
-            req.filename;
+          let path = "http://localhost:5000/assets/" + req.filename;
           const product = req.body;
 
           const productInfo = {
             name: product.name,
             category: product.category,
             subtext: product.subtext,
-            stock: product.stock,
+            stock: Number(product.stock),
             description: product.description,
-            price: product.price,
+            price: Number(product.price),
+            discount: Number(product.discount),
             image: path,
           };
+
           const result = await productCollection.insertOne(productInfo);
           res.status(200).send({ message: "Product added.", success: true });
         } catch (error) {
@@ -351,15 +358,14 @@ async function run() {
             name: product.name,
             category: product.category,
             subtext: product.subtext,
-            stock: product.stock,
+            stock: Number(product.stock),
             description: product.description,
-            price: product.price,
+            price: Number(product.price),
+            discount: Number(product.discount),
           };
 
           if (req?.filename) {
-            let path =
-              "https://annoor-server-production-af32.up.railway.app/assets/" +
-              req.filename;
+            let path = "http://localhost:5000/assets/" + req.filename;
             productInfo = { ...productInfo, image: path };
           }
 
@@ -381,29 +387,43 @@ async function run() {
 
     // Get all products / search products
     app.get("/all-products", verifyJWT, verifyAdmin, async (req, res) => {
+      // const result = await productCollection.createIndex({
+      //   name: "text",
+      //   description: "text",
+      //   category: "text",
+      // });
+      // console.log(result);
+
       try {
         const page = parseInt(req?.query?.page) - 1;
         const search = req?.query?.search;
+        const filterBy = req?.query?.filter;
+
+        let query = {};
+        let sort = { $natural: -1 };
         let products;
         let productCount;
-
         if (search !== "") {
-          const query = { $text: { $search: search } };
-          productCount = await productCollection.countDocuments(query);
-          products = await productCollection
-            .find(query)
-            .skip(page * 15)
-            .limit(15)
-            .toArray();
-        } else {
-          productCount = await productCollection.estimatedDocumentCount();
-          products = await productCollection
-            .find({})
-            .sort({ $natural: -1 })
-            .skip(page * 15)
-            .limit(15)
-            .toArray();
+          query = {
+            $text: { $search: `/${search}/i` },
+          };
+          sort = {};
         }
+
+        if (filterBy === "Stock out") {
+          query = { stock: 0 };
+        }
+        if (filterBy === "Discounted") {
+          query = { discount: { $gt: 0 } };
+        }
+
+        productCount = await productCollection.countDocuments(query);
+        products = await productCollection
+          .find(query)
+          .sort(sort)
+          .skip(page * 15)
+          .limit(15)
+          .toArray();
 
         res.status(200).send({
           success: true,
@@ -465,6 +485,89 @@ async function run() {
         res
           .status(500)
           .send({ success: false, message: "Internal server error." });
+      }
+    });
+
+    // Get all users / search users
+    app.get("/all-users", verifyJWT, verifyAdmin, async (req, res) => {
+      // const result = await userCollection.createIndex({
+      //   email: "text",
+      //   phoneNumber: "text",
+      // });
+      // console.log(result);
+
+      try {
+        const page = parseInt(req?.query?.page) - 1;
+        const search = req?.query?.search;
+        const filterBy = req?.query?.filter;
+        let query = {};
+        let sort = { $natural: -1 };
+        let users;
+        let userCount;
+        if (search !== "") {
+          query = {
+            $text: { $search: `/${search}/i` },
+          };
+          sort = {};
+        }
+        if (filterBy === "Admin") {
+          query = { role: "admin" };
+        }
+        userCount = await userCollection.countDocuments(query);
+        users = await userCollection
+          .find(query)
+          .sort(sort)
+          .skip(page * 15)
+          .limit(15)
+          .toArray();
+        res.status(200).send({
+          success: true,
+          message: "Got all users",
+          data: users,
+          userCount: userCount,
+        });
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Internal server error.",
+        });
+      }
+    });
+
+    app.patch("/make-admin", verifyJWT, verifyAdmin, async (req, res) => {
+      try {
+        const filter = { uid: req?.headers?.id };
+        console.log(filter);
+        const doc = {
+          $set: { role: "admin" },
+        };
+        const result = await userCollection.updateOne(filter, doc);
+        console.log(result);
+        res
+          .status(200)
+          .send({ message: "Made admin successfully.", success: true });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "Internal server error.", success: false });
+      }
+    });
+
+    app.patch("/remove-admin", verifyJWT, verifyAdmin, async (req, res) => {
+      try {
+        const filter = { uid: req?.headers?.id };
+        console.log(filter);
+        const doc = {
+          $set: { role: "" },
+        };
+        const result = await userCollection.updateOne(filter, doc);
+        res
+          .status(200)
+          .send({ message: "Remove admin successfully.", success: true });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "Internal server error.", success: false });
       }
     });
   } finally {
