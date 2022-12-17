@@ -560,12 +560,10 @@ async function run() {
     app.patch("/make-admin", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const filter = { uid: req?.headers?.id };
-        console.log(filter);
         const doc = {
           $set: { role: "admin" },
         };
         const result = await userCollection.updateOne(filter, doc);
-        console.log(result);
         res
           .status(200)
           .send({ message: "Made admin successfully.", success: true });
@@ -580,7 +578,6 @@ async function run() {
     app.patch("/remove-admin", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const filter = { uid: req?.headers?.id };
-        console.log(filter);
         const doc = {
           $set: { role: "" },
         };
