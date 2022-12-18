@@ -101,6 +101,10 @@ async function run() {
       .db("annoor-business")
       .collection("order-collection");
 
+    const offerCollection = client
+      .db("annoor-business")
+      .collection("offer-collection");
+
     app.get("/", async (req, res) => {
       res.send("Hello there!");
     });
@@ -560,7 +564,7 @@ async function run() {
       }
     });
 
-    // Make admin
+    // Mak,e admin
     app.patch("/make-admin", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const filter = { uid: req?.headers?.id };
@@ -593,6 +597,44 @@ async function run() {
         res
           .status(500)
           .send({ message: "Internal server error.", success: false });
+      }
+    });
+
+    // Save offer
+    app.patch("/save-offer", verifyJWT, verifyAdmin, async (req, res) => {
+      try {
+        const offerText = req.body.offerText;
+        const filter = { id: "offer-text" };
+        const doc = {
+          $set: { offerText: offerText },
+        };
+        const result = await offerCollection.updateOne(filter, doc);
+        res.status(200).send({
+          message: "Saved the offer.",
+          success: true,
+        });
+      } catch (error) {
+        res.status(500).send({
+          message: "Internal server error.",
+          success: false,
+        });
+      }
+    });
+    // Get offer offer
+    app.get("/get-offer", async (req, res) => {
+      try {
+        const filter = { id: "offer-text" };
+        const result = await offerCollection.findOne(filter);
+        res.status(200).send({
+          message: "Saved the offer.",
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        res.status(500).send({
+          message: "Internal server error.",
+          success: false,
+        });
       }
     });
   } finally {
