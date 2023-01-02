@@ -226,7 +226,7 @@ async function run() {
       }
     });
 
-    // Order APIs
+    // ORDER API
     app.post("/order", verifyJWT, async (req, res) => {
       try {
         const ordersCount = await orderCollection.estimatedDocumentCount();
@@ -243,7 +243,7 @@ async function run() {
       }
     });
 
-    // Get orders by uid
+    // Get orders by uid 
     app.get("/orders", verifyJWT, async (req, res) => {
       try {
         const filter = { uid: req.headers.uid };
